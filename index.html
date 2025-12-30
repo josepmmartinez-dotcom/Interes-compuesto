@@ -178,7 +178,8 @@
     ctx.clearRect(0, 0, cssW, cssH);
 
     // Padding & plotting area (CSS pixels)
-    const pad = { l: 56, r: 18, t: 16, b: 44 };
+    // Increase left padding so Y labels aren't clipped and allow space for label backgrounds
+    const pad = { l: 110, r: 18, t: 24, b: 56 };
     const W = cssW, H = cssH;
     const x0 = pad.l, y0 = pad.t;
     const x1 = W - pad.r, y1 = H - pad.b;
@@ -192,10 +193,6 @@
     const x = (year) => x0 + (year - minX) * (x1 - x0) / (maxX - minX || 1);
     const y = (val)  => y1 - (val - minY) * (y1 - y0) / (maxY - minY || 1);
 
-    // Background (subtle)
-    // ctx.fillStyle = 'rgba(255,255,255,0.01)';
-    // ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-
     // Axes lines
     ctx.lineWidth = 1;
     ctx.strokeStyle = axisColor;
@@ -205,25 +202,43 @@
     ctx.lineTo(x1, y1);
     ctx.stroke();
 
-    // Y grid & ticks
-    ctx.font = '12px system-ui, -apple-system, "Segoe UI", Roboto, Arial';
-    const ticks = 5;
+    // Y grid & ticks - subtle style improvements: larger font, background boxes for labels
+    ctx.font = '600 14px system-ui, -apple-system, "Segoe UI", Roboto, Arial';
+    const ticks = 6;
     for (let i = 0; i <= ticks; i++) {
       const v = minY + (maxY - minY) * (i / ticks);
       const yy = y(v);
 
+      // grid line
       ctx.strokeStyle = gridColor;
       ctx.beginPath();
       ctx.moveTo(x0, yy);
       ctx.lineTo(x1, yy);
       ctx.stroke();
 
+      // label
+      const label = fmtEUR.format(v);
+
+      // measure label and draw semi-transparent background for legibility
+      ctx.font = '600 14px system-ui, -apple-system, "Segoe UI", Roboto, Arial';
+      const metrics = ctx.measureText(label);
+      const padLabel = 8;
+      const rectW = metrics.width + padLabel * 2;
+      const rectH = 22;
+      const rx = x0 - 14 - rectW;
+      const ry = yy - rectH / 2;
+
+      ctx.fillStyle = 'rgba(0,0,0,0.52)';
+      ctx.fillRect(rx, ry, rectW, rectH);
+      // subtle border for the label box
+      ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(rx, ry, rectW, rectH);
+
       ctx.fillStyle = fg;
-      ctx.globalAlpha = 0.9;
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
-      ctx.fillText(fmtEUR.format(v), x0 - 8, yy);
-      ctx.globalAlpha = 1;
+      ctx.fillText(label, x0 - 12, yy);
     }
 
     // X ticks
